@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'login.dart'; // Your login screen
+import 'login.dart';
+import 'edit_profile_screen.dart';
+import 'terms_screen.dart';
+import 'privacy_policy_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -31,7 +34,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const LoginScreen()),
-            (route) => false,
+        (route) => false,
       );
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Logged out successfully')),
@@ -52,13 +55,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF2F6F6),
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: const Text('Profile', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF4F9792),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          // Profile Info Card
+          // -------------------- PROFILE CARD ----------------------
           Card(
             elevation: 3,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -72,57 +76,77 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ? NetworkImage(_profileImageUrl!)
                         : const AssetImage('assets/images/profile.jpg') as ImageProvider,
                   ),
+
                   const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        displayName,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+
+                  // 🔥 FIX: Prevent overflow
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          displayName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      Text(
-                        email,
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                    ],
+
+                        const SizedBox(height: 4),
+
+                        Text(
+                          email,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
           ),
+
           const SizedBox(height: 20),
 
-          // Settings Options
+          // -------------------- OPTIONS ----------------------
+
           _buildOptionTile(
             icon: Icons.person,
             title: 'Edit Profile',
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Edit Profile tapped')),
-              );
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+              ).then((_) => _loadUserProfileImage());
             },
           ),
+
           _buildOptionTile(
             icon: Icons.lock_outline,
             title: 'Privacy Policy',
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Privacy Policy tapped')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
               );
             },
           ),
+
           _buildOptionTile(
             icon: Icons.description_outlined,
             title: 'Terms & Conditions',
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Terms & Conditions tapped')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const TermsScreen()),
               );
             },
           ),
+
           _buildOptionTile(
             icon: Icons.logout,
             title: 'Logout',
@@ -134,6 +158,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
+  // -------------------- OPTION TILE BUILDER --------------------
 
   Widget _buildOptionTile({
     required IconData icon,

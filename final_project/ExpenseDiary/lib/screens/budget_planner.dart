@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../controllers/firebase_collection.dart';
+import 'package:provider/provider.dart';
+import '../provider/currency_provider.dart';
 
 final firebaseService = FirebaseService();
 
@@ -27,7 +29,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
   double _remaining = 0;
   bool _calculated = false;
 
-  void _calculate() {
+  void _calculate(String symbol) {
     setState(() {
       _income = double.tryParse(_incomeController.text.trim()) ?? 0;
       _totalAllocated = 0;
@@ -40,12 +42,15 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
       _calculated = true;
     });
 
-    _showPopupDialog("Calculation Done", _remaining >= 0
-        ? "You have ₹${_remaining.toStringAsFixed(2)} remaining."
-        : "You're over budget by ₹${_remaining.abs().toStringAsFixed(2)}.");
+    _showPopupDialog(
+      "Calculation Done",
+      _remaining >= 0
+          ? "You have $symbol${_remaining.toStringAsFixed(2)} remaining."
+          : "You're over budget by $symbol${_remaining.abs().toStringAsFixed(2)}.",
+    );
   }
 
-  Future<void> _submitPlan() async {
+  Future<void> _submitPlan(String symbol) async {
     _income = double.tryParse(_incomeController.text.trim()) ?? 0;
     if (_income <= 0) {
       _showPopupDialog("Invalid Input", "Please enter a valid income amount.");
@@ -123,6 +128,8 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final symbol = Provider.of<CurrencyProvider>(context).symbol;
+
     return Scaffold(
       backgroundColor: const Color(0xFFEDF4F3),
       appBar: AppBar(
@@ -145,20 +152,17 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
               child: TextField(
                 controller: _incomeController,
                 keyboardType: TextInputType.number,
-                decoration: _inputStyle('Monthly Income (₹)'),
+                decoration: _inputStyle('Monthly Income ($symbol)'),
               ),
             ),
           ),
+
           const SizedBox(height: 20),
-          const Text(
-            'Allocate Budget:',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
+          const Text('Allocate Budget:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 10),
 
-          // Category input fields
           ..._categoryControllers.entries.map(
-                (entry) => Padding(
+            (entry) => Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Container(
                 decoration: BoxDecoration(
@@ -171,7 +175,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                   child: TextField(
                     controller: entry.value,
                     keyboardType: TextInputType.number,
-                    decoration: _inputStyle('${entry.key} Budget (₹)'),
+                    decoration: _inputStyle('${entry.key} Budget ($symbol)'),
                   ),
                 ),
               ),
@@ -184,7 +188,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               ElevatedButton.icon(
-                onPressed: _calculate,
+                onPressed: () => _calculate(symbol),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF4F9792),
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -193,7 +197,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                 label: const Text('Calculate', style: TextStyle(color: Colors.white)),
               ),
               ElevatedButton.icon(
-                onPressed: _submitPlan,
+                onPressed: () => _submitPlan(symbol),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.teal[700],
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -216,14 +220,14 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Total Allocated: ₹${_totalAllocated.toStringAsFixed(2)}',
+                      'Total Allocated: $symbol${_totalAllocated.toStringAsFixed(2)}',
                       style: const TextStyle(fontSize: 16),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       _remaining >= 0
-                          ? 'Remaining Budget: ₹${_remaining.toStringAsFixed(2)}'
-                          : 'Over Budget by ₹${_remaining.abs().toStringAsFixed(2)}',
+                          ? 'Remaining Budget: $symbol${_remaining.toStringAsFixed(2)}'
+                          : 'Over Budget by $symbol${_remaining.abs().toStringAsFixed(2)}',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,

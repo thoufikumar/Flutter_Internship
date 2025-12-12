@@ -1,18 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'screens/introsplashscreen.dart'; // contains IntroSplashScreen and SplashScreen
+import 'screens/introsplashscreen.dart';
 import 'screens/login.dart';
 import 'screens/register.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:expense_tracker_app/firebase_options.dart';
+import 'package:provider/provider.dart';
+import 'provider/currency_provider.dart';
 
-
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const MyApp());
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => CurrencyProvider()..loadCurrency()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -23,10 +32,16 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Expense Tracker',
       debugShowCheckedModeBanner: false,
-      home: const IntroSplashScreen(), // shows initial full-screen splash
+      home: const IntroSplashScreen(), // shows initial full-screen splash / onboarding
+      theme: ThemeData(
+        primaryColor: const Color(0xFF4F9792),
+        scaffoldBackgroundColor: const Color(0xFFEFF9F7),
+        useMaterial3: false,
+      ),
     );
   }
 }
+
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
 
@@ -45,9 +60,9 @@ class SplashScreen extends StatelessWidget {
                 color: Color(0xFFEFF9F7),
               ),
               child: Lottie.asset(
-                'assets/images/introani.json', // make sure this is a `.json` file
+                'assets/images/introani.json', // ensure this file exists
                 fit: BoxFit.contain,
-              )
+              ),
             ),
           ),
 
@@ -107,8 +122,7 @@ class SplashScreen extends StatelessWidget {
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(50
-                          ),
+                          borderRadius: BorderRadius.circular(50),
                         ),
                       ),
                       child: const Text(

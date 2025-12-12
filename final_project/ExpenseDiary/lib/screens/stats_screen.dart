@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../controllers/firebase_collection.dart'; // Adjust the path as needed
+import '../controllers/firebase_collection.dart';
+import 'package:provider/provider.dart';
+import '../provider/currency_provider.dart';
 
 class StatsScreen extends StatefulWidget {
   const StatsScreen({super.key});
@@ -65,7 +67,8 @@ class _StatsScreenState extends State<StatsScreen> with TickerProviderStateMixin
     });
   }
 
-  void _editItem(Map<String, dynamic> item, bool isBudget) {
+  // EDIT ITEM
+  void _editItem(Map<String, dynamic> item, bool isBudget, String symbol) {
     final controller = TextEditingController(text: item['amount'].toString());
     showDialog(
       context: context,
@@ -74,7 +77,9 @@ class _StatsScreenState extends State<StatsScreen> with TickerProviderStateMixin
         content: TextField(
           controller: controller,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(labelText: 'Amount'),
+          decoration: InputDecoration(
+            labelText: "Amount ($symbol)",
+          ),
         ),
         actions: [
           TextButton(
@@ -100,6 +105,7 @@ class _StatsScreenState extends State<StatsScreen> with TickerProviderStateMixin
     );
   }
 
+  // DELETE ITEM
   void _confirmDeleteItem(Map<String, dynamic> item, bool isBudget) {
     final collection = isBudget ? 'budgets' : 'expenses';
 
@@ -128,85 +134,97 @@ class _StatsScreenState extends State<StatsScreen> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildList(bool isBudget) {
-    final dataList = isBudget ? _budgets : _expenses;
+  Widget _buildList(bool isBudget, String symbol) {
+  final provider = Provider.of<CurrencyProvider>(context, listen: false);
+  final dataList = isBudget ? _budgets : _expenses;
 
-    if (dataList.isEmpty) {
-      return Center(
-        child: Text(
-          'No ${isBudget ? "budgets" : "expenses"} yet.',
-          style: const TextStyle(fontSize: 16, color: Colors.black54),
-        ),
-      );
-    }
-
-    return ListView.builder(
-      itemCount: dataList.length,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      itemBuilder: (context, index) {
-        final item = dataList[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black12,
-                blurRadius: 6,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: ListTile(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            leading: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: isBudget ? Colors.green.shade100 : Colors.red.shade100,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                isBudget ? Icons.account_balance_wallet : Icons.money,
-                color: isBudget ? Colors.green : Colors.red,
-              ),
-            ),
-            title: Text(
-              item['title'] ?? 'Untitled',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            subtitle: Text(
-              item['date'] ?? 'No date',
-              style: const TextStyle(color: Colors.black54),
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '₹${item['amount']?.toStringAsFixed(2) ?? "0.00"}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: isBudget ? Colors.green : Colors.red,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => _confirmDeleteItem(item, isBudget),
-                ),
-              ],
-            ),
-            onTap: () => _editItem(item, isBudget),
-          ),
-        );
-      },
+  if (dataList.isEmpty) {
+    return Center(
+      child: Text(
+        'No ${isBudget ? "budgets" : "expenses"} yet.',
+        style: const TextStyle(fontSize: 16, color: Colors.black54),
+      ),
     );
   }
 
+  return ListView.builder(
+    itemCount: dataList.length,
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    itemBuilder: (context, index) {
+      final item = dataList[index];
+      final convertedAmount = provider.convert(item['amount']);
+
+      return Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 6,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: ListTile(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+
+          leading: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: isBudget ? Colors.green.shade100 : Colors.red.shade100,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              isBudget ? Icons.account_balance_wallet : Icons.money,
+              color: isBudget ? Colors.green : Colors.red,
+            ),
+          ),
+
+          title: Text(
+            item['title'] ?? 'Untitled',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+
+          subtitle: Text(
+            item['date'] ?? 'No date',
+            style: const TextStyle(color: Colors.black54),
+          ),
+
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "$symbol${convertedAmount.toStringAsFixed(2)}",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: isBudget ? Colors.green : Colors.red,
+                ),
+              ),
+              const SizedBox(width: 12),
+              IconButton(
+                icon: const Icon(Icons.delete, color: Colors.red),
+                onPressed: () => _confirmDeleteItem(item, isBudget),
+              ),
+            ],
+          ),
+          onTap: () => _editItem(item, isBudget, symbol),
+        ),
+      );
+    },
+  );
+}
+
+
   @override
   Widget build(BuildContext context) {
+    final symbol = Provider.of<CurrencyProvider>(context).symbol;
+
     return DefaultTabController(
       length: 2,
       child: Scaffold(
@@ -229,8 +247,8 @@ class _StatsScreenState extends State<StatsScreen> with TickerProviderStateMixin
         body: TabBarView(
           controller: _tabController,
           children: [
-            _buildList(false),
-            _buildList(true),
+            _buildList(false, symbol), // Expenses
+            _buildList(true, symbol),  // Budgets
           ],
         ),
       ),
