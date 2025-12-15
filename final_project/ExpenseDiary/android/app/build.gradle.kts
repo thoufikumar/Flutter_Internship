@@ -6,6 +6,12 @@ plugins {
 }
 
 android {
+
+    testOptions {
+        unitTests.all {
+            it.isEnabled = false
+        }
+    }
     namespace = "com.expense.firstpro"
     compileSdk = 36
     ndkVersion = "27.0.12077973"

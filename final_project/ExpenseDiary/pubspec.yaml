@@ -24,6 +24,8 @@ dependencies:
   connectivity_plus:
   provider: 
   http: 
+  google_sign_in: ^6.2.1
+  introduction_screen:
 
 dev_dependencies:
   flutter_test:

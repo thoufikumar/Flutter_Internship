@@ -7,6 +7,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:expense_tracker_app/firebase_options.dart';
 import 'package:provider/provider.dart';
 import 'provider/currency_provider.dart';
+import 'provider/ExpenseProvider.dart';
+import 'auth/auth_gate.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,13 +17,18 @@ Future<void> main() async {
   );
 
   runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => CurrencyProvider()..loadCurrency()),
-      ],
-      child: const MyApp(),
-    ),
-  );
+  MultiProvider(
+    providers: [
+      ChangeNotifierProvider(
+        create: (_) => CurrencyProvider()..loadCurrency(),
+      ),
+      ChangeNotifierProvider(
+        create: (_) => ExpenseProvider(),
+      ),
+    ],
+    child: const MyApp(),
+  ),
+);
 }
 
 class MyApp extends StatelessWidget {
@@ -32,7 +39,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Expense Tracker',
       debugShowCheckedModeBanner: false,
-      home: const IntroSplashScreen(), // shows initial full-screen splash / onboarding
+      home: const AuthGate(), // shows initial full-screen splash / onboarding
       theme: ThemeData(
         primaryColor: const Color(0xFF4F9792),
         scaffoldBackgroundColor: const Color(0xFFEFF9F7),

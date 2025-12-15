@@ -6,6 +6,9 @@ class CurrencyProvider extends ChangeNotifier {
   String _baseCurrency = "INR";   // currency user selected
   String _viewCurrency = "INR";   // currency currently shown (toggle)
   Map<String, double> _rates = {}; // exchange rates relative to USD
+  bool _isReady = false;
+  bool get isReady => _isReady;
+
 
   String get baseCurrency => _baseCurrency;
   String get viewCurrency => _viewCurrency;
@@ -21,15 +24,18 @@ class CurrencyProvider extends ChangeNotifier {
   String get symbol => currencySymbols[_viewCurrency] ?? "₹";
 
   /// Load saved currency + rates
-  Future<void> loadCurrency() async {
-    final prefs = await SharedPreferences.getInstance();
+ Future<void> loadCurrency() async {
+  final prefs = await SharedPreferences.getInstance();
 
-    _baseCurrency = prefs.getString("currency") ?? "INR";
-    _viewCurrency = _baseCurrency; // default show base
+  _baseCurrency = prefs.getString("currency") ?? "INR";
+  _viewCurrency = _baseCurrency;
 
-    await loadRates();
-    notifyListeners();
-  }
+  _rates = await CurrencyService().fetchRates() ?? {};
+
+  _isReady = true;
+  notifyListeners();
+}
+
 
   /// Save user's selected base currency (onboarding)
   Future<void> setBaseCurrency(String code) async {
@@ -48,22 +54,20 @@ class CurrencyProvider extends ChangeNotifier {
   }
 
   /// Load exchange rate table from API
-  Future<void> loadRates() async {
-    _rates = await CurrencyService().fetchRates() ?? {};
-    notifyListeners();
-  }
+Future<void> loadRates() async {
+  _rates = await CurrencyService().fetchRates() ?? {};
+}
+
 
   /// Actual correct conversion formula
-  double convert(double amount) {
-    if (_rates.isEmpty) return amount;
+ double convert(double amount) {
+  if (!_isReady || _rates.isEmpty) return amount;
 
-    // If viewing same currency → no conversion
-    if (_baseCurrency == _viewCurrency) return amount;
+  if (_baseCurrency == _viewCurrency) return amount;
 
-    double baseRate = _rates[_baseCurrency] ?? 1.0;
-    double viewRate = _rates[_viewCurrency] ?? 1.0;
+  final baseRate = _rates[_baseCurrency] ?? 1.0;
+  final viewRate = _rates[_viewCurrency] ?? 1.0;
 
-    // Convert BASE → USD → VIEW
-    return (amount / baseRate) * viewRate;
-  }
+  return (amount / baseRate) * viewRate;
+}
 }

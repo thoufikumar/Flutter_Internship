@@ -1,171 +1,289 @@
+import 'package:expense_tracker_app/provider/ExpenseProvider.dart';
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
-import 'home.dart';
-import 'login.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class RegisterScreen extends StatelessWidget {
+import '../services/google_auth_service.dart';
+import '../provider/currency_provider.dart';
+import 'login.dart';
+
+class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
+  @override
+  State<RegisterScreen> createState() => _RegisterScreenState();
+}
+
+class _RegisterScreenState extends State<RegisterScreen> {
+  final _auth = FirebaseAuth.instance;
+
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _incomeController = TextEditingController();
+
+  String _selectedCurrency = "INR";
+  bool _isPasswordVisible = false;
+  bool _loading = false;
+
+  // ---------------- VALIDATION ----------------
+
   bool _isValidEmail(String email) {
-    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    final emailRegex =
+        RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
     return emailRegex.hasMatch(email);
   }
 
   bool _isValidPassword(String password) {
-    final passwordRegex = RegExp(r'^(?=.*[A-Z])(?=.*[!@#\$&*~]).{6,}$');
+    final passwordRegex =
+        RegExp(r'^(?=.*[A-Z])(?=.*[!@#\$&*~]).{6,}$');
     return passwordRegex.hasMatch(password);
   }
 
-  bool _isValidPhone(String phone) {
-    final phoneRegex = RegExp(r'^\d{10}$');
-    return phoneRegex.hasMatch(phone);
-  }
+  // ---------------- EMAIL REGISTER ----------------
 
-  void _register(
-      BuildContext context,
-      String name,
-      String phone,
-      String email,
-      String password,
-      ) async {
-    if (name.trim().isEmpty) {
-      _showError(context, 'Name is required.');
-      return;
-    }
-    if (!_isValidPhone(phone)) {
-      _showError(context, 'Enter a valid 10-digit mobile number.');
-      return;
-    }
+  Future<void> _register() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    final income =
+        double.tryParse(_incomeController.text.trim()) ?? 0;
+
     if (!_isValidEmail(email)) {
-      _showError(context, 'Enter a valid email.');
+      _showError("Enter a valid email");
       return;
     }
+
     if (!_isValidPassword(password)) {
-      _showError(context,
-          'Password must be at least 6 characters, include one uppercase letter and one special character.');
+      _showError(
+        "Password must contain 1 uppercase letter and 1 special character",
+      );
       return;
     }
+
+    if (income <= 0) {
+      _showError("Please enter a valid monthly income");
+      return;
+    }
+
+    setState(() => _loading = true);
 
     try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      // 🔐 Create Firebase account
+      await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
+      final prefs = await SharedPreferences.getInstance();
+
+      // 💾 Save currency
+      await prefs.setString("currency", _selectedCurrency);
+
+      // 🔥 RESET onboarding for new user (CRITICAL)
+      await prefs.setBool('hasSeenOnboarding', false);
+
+      if (!mounted) return;
+
+      // 💰 Save income
+      context
+          .read<CurrencyProvider>()
+          .setBaseCurrency(_selectedCurrency);
+
+      await context
+          .read<ExpenseProvider>()
+          .setIncome(income);
+
+      // 🔙 Remove RegisterScreen → AuthGate takes over
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
     } on FirebaseAuthException catch (e) {
       if (e.code == 'email-already-in-use') {
-        _showError(context, 'This email is already registered.');
-      } else if (e.code == 'weak-password') {
-        _showError(context, 'Password is too weak.');
+        _showError("Account already exists. Please login.");
       } else {
-        _showError(context, 'Registration failed: ${e.message}');
+        _showError(e.message ?? "Registration failed");
       }
-    } catch (e) {
-      _showError(context, 'Something went wrong. Try again.');
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  void _showError(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+  // ---------------- UI HELPERS ----------------
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(msg)));
   }
+
+  // ---------------- UI ----------------
 
   @override
   Widget build(BuildContext context) {
-    final nameController = TextEditingController();
-    final phoneNumController = TextEditingController();
-    final emailController = TextEditingController();
-    final pwdController = TextEditingController();
+    final currencies = CurrencyProvider.currencySymbols;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F7F6),
-      body: Center(
+      body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 20,
+          ),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Lottie.asset(
-                'assets/images/register_lottie.json',
-                height: 160,
-              ),
-              const SizedBox(height: 20),
               const Text(
                 "Create Account",
+                textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
                   color: Color(0xFF4F9792),
                 ),
               ),
               const SizedBox(height: 30),
 
-              _buildInputCard("Enter your Name...", nameController),
-              const SizedBox(height: 15),
-              _buildInputCard("Enter your Mobile Number...", phoneNumController,
-                  keyboardType: TextInputType.phone),
-              const SizedBox(height: 15),
-              _buildInputCard("Enter your email...", emailController,
-                  keyboardType: TextInputType.emailAddress),
-              const SizedBox(height: 15),
-              _buildInputCard("Enter your password...", pwdController,
-                  obscureText: true),
+              _inputField("Email", _emailController),
+              const SizedBox(height: 14),
+
+              _passwordField(),
+              const SizedBox(height: 14),
+
+              _inputField(
+                "Monthly Income",
+                _incomeController,
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 18),
+
+              DropdownButtonFormField<String>(
+                value: _selectedCurrency,
+                decoration: _inputDecoration("Preferred Currency"),
+                items: currencies.keys.map((code) {
+                  return DropdownMenuItem(
+                    value: code,
+                    child: Text("${currencies[code]}  $code"),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() => _selectedCurrency = val);
+                  }
+                },
+              ),
+
               const SizedBox(height: 30),
 
-              Container(
-                width: double.infinity,
-                height: 50,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(30),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF4F9792), Color(0xFF6FB3AC)],
-                  ),
-                ),
+              // ---------------- EMAIL REGISTER ----------------
+
+              SizedBox(
+                height: 48,
                 child: ElevatedButton(
-                  onPressed: () {
-                    _register(
-                      context,
-                      nameController.text.trim(),
-                      phoneNumController.text.trim(),
-                      emailController.text.trim(),
-                      pwdController.text.trim(),
-                    );
-                  },
+                  onPressed: _loading ? null : _register,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
+                    backgroundColor: const Color(0xFF4F9792),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+                      borderRadius: BorderRadius.circular(28),
                     ),
                   ),
-                  child: const Text(
-                    'Register',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  child: _loading
+                      ? const CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        )
+                      : const Text("Register"),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // ---------------- GOOGLE REGISTER ----------------
+
+              SizedBox(
+                height: 48,
+                child: OutlinedButton(
+                  onPressed: _loading
+                      ? null
+                      : () async {
+                          try {
+                            setState(() => _loading = true);
+
+                            await GoogleAuthService.signInWithGoogle(
+                              isRegister: true,
+                            );
+
+                            final prefs =
+                                await SharedPreferences.getInstance();
+
+                            // 🔥 RESET onboarding for new Google user
+                            await prefs.setBool(
+                                'hasSeenOnboarding', false);
+
+                            if (!mounted) return;
+
+                            // 🔙 Remove RegisterScreen
+                            Navigator.of(context).pop();
+
+                          } catch (e) {
+                            _showError(
+                              "Account already exists. Please login.",
+                            );
+                          } finally {
+                            if (mounted) {
+                              setState(() => _loading = false);
+                            }
+                          }
+                        },
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                    side: const BorderSide(
+                      color: Color(0xFF4F9792),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.asset(
+                        "assets/images/google.png",
+                        height: 24,
+                        width: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        "Register with Google",
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Color(0xFF4F9792),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
+
               const SizedBox(height: 20),
+
+              // ---------------- LOGIN LINK ----------------
 
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text("Already Have An Account? "),
+                  const Text("Already have an account? "),
                   GestureDetector(
                     onTap: () {
-                      Navigator.push(
+                      Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => const LoginScreen()),
+                          builder: (_) => const LoginScreen(),
+                        ),
                       );
                     },
                     child: const Text(
-                      "Log In",
+                      "Login",
                       style: TextStyle(
                         color: Color(0xFF4F9792),
                         fontWeight: FontWeight.bold,
@@ -174,7 +292,6 @@ class RegisterScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -182,36 +299,53 @@ class RegisterScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInputCard(
-      String hint,
-      TextEditingController controller, {
-        TextInputType keyboardType = TextInputType.text,
-        bool obscureText = false,
-      }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 6,
-            offset: Offset(0, 3),
+  // ---------------- INPUT WIDGETS ----------------
+
+  Widget _inputField(
+    String hint,
+    TextEditingController controller, {
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      decoration: _inputDecoration(hint),
+    );
+  }
+
+  Widget _passwordField() {
+    return TextField(
+      controller: _passwordController,
+      obscureText: !_isPasswordVisible,
+      decoration: _inputDecoration("Password").copyWith(
+        suffixIcon: IconButton(
+          icon: Icon(
+            _isPasswordVisible
+                ? Icons.visibility
+                : Icons.visibility_off,
           ),
-        ],
-      ),
-      child: TextField(
-        controller: controller,
-        keyboardType: keyboardType,
-        obscureText: obscureText,
-        decoration: InputDecoration(
-          hintText: hint,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
+          onPressed: () {
+            setState(() {
+              _isPasswordVisible = !_isPasswordVisible;
+            });
+          },
         ),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String hint) {
+    return InputDecoration(
+      labelText: hint,
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 14,
       ),
     );
   }

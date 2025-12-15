@@ -1,5 +1,9 @@
+import 'package:expense_tracker_app/auth/auth_gate.dart';
+import 'package:expense_tracker_app/provider/ExpenseProvider.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:provider/provider.dart';
 import 'login.dart';
 import 'edit_profile_screen.dart';
 import 'terms_screen.dart';
@@ -28,23 +32,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
-  void _onLogout(BuildContext context) async {
-    try {
-      await FirebaseAuth.instance.signOut();
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (route) => false,
-      );
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Logged out successfully')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Logout failed: $e')),
-      );
-    }
-  }
+
+Future<void> _onLogout(BuildContext context) async {
+  final googleSignIn = GoogleSignIn();
+
+  // 1️⃣ Clear local app state
+  context.read<ExpenseProvider>().clear();
+
+  // 2️⃣ Sign out from Firebase
+  await FirebaseAuth.instance.signOut();
+
+  // 3️⃣ Sign out from Google (THIS WAS MISSING)
+  await googleSignIn.signOut();
+
+  // 4️⃣ Navigate to AuthGate (not LoginScreen)
+  if (!context.mounted) return;
+
+  Navigator.pushAndRemoveUntil(
+    context,
+    MaterialPageRoute(builder: (_) => const AuthGate()),
+    (_) => false,
+  );
+}
+
 
   @override
   Widget build(BuildContext context) {
