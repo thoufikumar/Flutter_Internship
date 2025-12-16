@@ -20,6 +20,17 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
   bool _calculated = false;
   bool _saving = false;
 
+  /// 🗓 Dynamic monthly plan title
+  String _getMonthlyPlanTitle() {
+    final now = DateTime.now();
+    final month = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ][now.month - 1];
+
+    return "$month's Monthly Plan";
+  }
+
   final Map<String, TextEditingController> _categoryControllers = {
     'Food': TextEditingController(),
     'Rent': TextEditingController(),
@@ -76,68 +87,63 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
     );
   }
 
- Future<void> _submitPlan(String symbol) async {
-  if (_monthlyIncome <= 0) {
-    await _showDialog(
-      "Income Missing",
-      "Please set your monthly income in Home Screen first.",
-    );
-    return;
-  }
-
-  if (_saving) return;
-  _saving = true;
-
-  try {
-    final categories = _getCategories();
-
-    // 🚫 VALIDATION: no empty budget allowed
-    if (_totalAllocated <= 0) {
+  Future<void> _submitPlan(String symbol) async {
+    if (_monthlyIncome <= 0) {
       await _showDialog(
-        "Invalid Budget",
-        "Please allocate at least one category amount before saving.",
+        "Income Missing",
+        "Please set your monthly income in Home Screen first.",
       );
       return;
     }
 
-    await _firebaseService.saveBudget(
-      title: 'Monthly Budget',
-      amount: _totalAllocated,
-      income: _monthlyIncome,
-      date: DateTime.now().toIso8601String(),
-      categories: categories,
-    );
+    if (_saving) return;
+    _saving = true;
 
-    if (!mounted) return;
+    try {
+      final categories = _getCategories();
 
-    // ✅ Success dialog only
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text("Success"),
-          content: const Text("Budget plan saved successfully!"),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-              },
-              child: const Text("OK"),
-            ),
-          ],
+      if (_totalAllocated <= 0) {
+        await _showDialog(
+          "Invalid Budget",
+          "Please allocate at least one category amount before saving.",
         );
-      },
-    );
+        return;
+      }
 
-  } catch (e) {
-    if (!mounted) return;
-    await _showDialog("Error", "Failed to save budget.");
-  } finally {
-    _saving = false;
+      // ✅ FIXED: dynamic month-based title
+      await _firebaseService.saveBudget(
+        title: _getMonthlyPlanTitle(),
+        amount: _totalAllocated,
+        income: _monthlyIncome,
+        date: DateTime.now().toIso8601String(),
+        categories: categories,
+      );
+
+      if (!mounted) return;
+
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: const Text("Success"),
+            content: const Text("Budget plan saved successfully!"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text("OK"),
+              ),
+            ],
+          );
+        },
+      );
+    } catch (e) {
+      if (!mounted) return;
+      await _showDialog("Error", "Failed to save budget.");
+    } finally {
+      _saving = false;
+    }
   }
-}
-
 
   Future<void> _showDialog(String title, String message) {
     return showDialog(
@@ -209,8 +215,10 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
           ),
 
           const SizedBox(height: 20),
-          const Text("Allocate Budget",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text(
+            "Allocate Budget",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
 
           ..._categoryControllers.entries.map(
             (entry) => Padding(
@@ -226,72 +234,52 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
           const SizedBox(height: 20),
 
           Row(
-  children: [
-    /// 🧮 Calculate Button (Outlined – secondary)
-    Expanded(
-      child: SizedBox(
-        height: 50,
-        child: OutlinedButton.icon(
-          onPressed: () => _calculate(symbol),
-          icon: const Icon(Icons.calculate, size: 20),
-          label: const Text(
-            "Calculate",
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: const Color(0xFF4F9792),
-            side: const BorderSide(color: Color(0xFF4F9792), width: 1.4),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(28),
-            ),
-          ),
-        ),
-      ),
-    ),
-
-    const SizedBox(width: 14),
-
-    /// 💾 Save Plan Button (Primary – filled)
-    Expanded(
-      child: SizedBox(
-        height: 50,
-        child: ElevatedButton.icon(
-          onPressed: _saving ? null : () => _submitPlan(symbol),
-          icon: _saving
-              ? const SizedBox(
-                  height: 18,
-                  width: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 50,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _calculate(symbol),
+                    icon: const Icon(Icons.calculate),
+                    label: const Text("Calculate"),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF4F9792),
+                      side: const BorderSide(color: Color(0xFF4F9792)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28),
+                      ),
+                    ),
                   ),
-                )
-              : const Icon(Icons.save, size: 20),
-          label: Text(
-            _saving ? "Saving..." : "Save Plan",
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-            ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: SizedBox(
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    onPressed: _saving ? null : () => _submitPlan(symbol),
+                    icon: _saving
+                        ? const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.save),
+                    label: Text(_saving ? "Saving..." : "Save Plan"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4F9792),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF4F9792),
-            disabledBackgroundColor:
-                const Color(0xFF4F9792).withOpacity(0.6),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(28),
-            ),
-          ),
-        ),
-      ),
-    ),
-  ],
-),
-
 
           if (_calculated)
             Card(

@@ -26,6 +26,7 @@ dependencies:
   http: 
   google_sign_in: ^6.2.1
   introduction_screen:
+  video_player: ^2.8.2
 
 dev_dependencies:
   flutter_test:
@@ -42,4 +43,4 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/app_icon.png"
+  image_path: "assets/images/icon.png"

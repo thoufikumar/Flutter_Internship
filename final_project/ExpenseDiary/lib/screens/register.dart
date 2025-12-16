@@ -76,13 +76,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       final prefs = await SharedPreferences.getInstance();
 
-      // 💾 Save currency
+      // 💾 Save preferred currency
       await prefs.setString("currency", _selectedCurrency);
 
-      // 🔥 RESET onboarding for new user (CRITICAL)
+      // 🔥 Reset onboarding for new user
       await prefs.setBool('hasSeenOnboarding', false);
 
       if (!mounted) return;
+
+      // 🔥 CRITICAL FIX: reset provider state
+      context.read<ExpenseProvider>().clear();
 
       // 💰 Save income
       context
@@ -93,10 +96,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           .read<ExpenseProvider>()
           .setIncome(income);
 
-      // 🔙 Remove RegisterScreen → AuthGate takes over
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
+      // 🔙 Return to Login/AuthGate flow
+      Navigator.of(context).pop();
 
     } on FirebaseAuthException catch (e) {
       if (e.code == 'email-already-in-use') {
@@ -216,13 +217,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             final prefs =
                                 await SharedPreferences.getInstance();
 
-                            // 🔥 RESET onboarding for new Google user
+                            // 🔥 Reset onboarding for Google user
                             await prefs.setBool(
                                 'hasSeenOnboarding', false);
 
                             if (!mounted) return;
 
-                            // 🔙 Remove RegisterScreen
+                            // 🔥 Reset provider state
+                            context.read<ExpenseProvider>().clear();
+
                             Navigator.of(context).pop();
 
                           } catch (e) {

@@ -40,10 +40,15 @@ class _HomeScreenState extends State<HomeScreen> {
 @override
 void initState() {
   super.initState();
-  Future.microtask(() {
-    context.read<ExpenseProvider>().loadAll();
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    final provider = context.read<ExpenseProvider>();
+    if (!provider.sessionInitialized) {
+      provider.loadAll();
+    }
   });
 }
+
 
   Widget _buildAmountInfoWhite(String label, double amount, String symbol) {
     return Column(

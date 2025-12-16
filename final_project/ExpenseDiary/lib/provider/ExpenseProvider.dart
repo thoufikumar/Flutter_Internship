@@ -12,7 +12,10 @@ class ExpenseProvider extends ChangeNotifier {
   double _monthlyIncome = 0;
 
   bool _loading = false;
-  bool _loaded = false; // 🔥 important for AuthGate
+  bool _loaded = false;
+
+  // 🔥 SESSION FLAG (MUST BE INSIDE CLASS)
+  bool _sessionInitialized = false;
 
   // ─────────────── GETTERS ───────────────
 
@@ -22,9 +25,10 @@ class ExpenseProvider extends ChangeNotifier {
   bool get isLoading => _loading;
   bool get isLoaded => _loaded;
 
+  bool get sessionInitialized => _sessionInitialized;
+
   double get totalIncome => _monthlyIncome;
 
-  /// ✅ AuthGate relies ONLY on this
   bool get hasIncome => _monthlyIncome > 0;
 
   double get totalExpenses =>
@@ -43,8 +47,7 @@ class ExpenseProvider extends ChangeNotifier {
 
   // ─────────────── CORE METHODS ───────────────
 
-  /// 🔥 Called AFTER user logs in
-  /// Loads income ONLY (used by AuthGate)
+  /// 🔥 Used by AuthGate
   Future<void> loadUserIncome() async {
     _loaded = false;
     notifyListeners();
@@ -55,8 +58,11 @@ class ExpenseProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 🔥 Load everything (used after landing in app)
+  /// 🔥 Load app data ONCE per login
   Future<void> loadAll() async {
+    if (_sessionInitialized) return;
+
+    _sessionInitialized = true;
     _loading = true;
     notifyListeners();
 
@@ -68,7 +74,7 @@ class ExpenseProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 🔥 Save income from setup screen
+  /// 🔥 Save income
   Future<void> setIncome(double income) async {
     _monthlyIncome = income;
     notifyListeners();
@@ -76,13 +82,13 @@ class ExpenseProvider extends ChangeNotifier {
     await _service.saveIncome(income);
   }
 
-  /// 🔥 Add expense locally (Firestore already handled elsewhere)
-  Future<void> addExpense(Map<String, dynamic> expense) async {
+  /// 🔥 Add expense locally
+  void addExpense(Map<String, dynamic> expense) {
     _expenses.insert(0, expense);
     notifyListeners();
   }
 
-  /// 🔥 MUST be called on logout
+  /// 🔥 Logout reset (ONLY place this should happen)
   void clear() {
     _expenses = [];
     _budgets = [];
@@ -90,6 +96,7 @@ class ExpenseProvider extends ChangeNotifier {
 
     _loading = false;
     _loaded = false;
+    _sessionInitialized = false;
 
     notifyListeners();
   }

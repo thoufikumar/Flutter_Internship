@@ -54,12 +54,12 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _loading = true);
 
     try {
-      await FirebaseAuth.instance
-          .signInWithEmailAndPassword(
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      // 🚦 NO NAVIGATION — AuthGate handles it
+      // ✅ NO NAVIGATION
+      // AuthGate will automatically rebuild
     } on FirebaseAuthException catch (e) {
       _showError(e.message ?? "Login failed");
     } finally {
@@ -78,10 +78,11 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      await FirebaseAuth.instance
-          .sendPasswordResetEmail(email: email);
+      await FirebaseAuth.instance.sendPasswordResetEmail(
+        email: email,
+      );
       _showSuccess("Password reset link sent to your email");
-    } catch (e) {
+    } catch (_) {
       _showError("Failed to send reset email");
     }
   }
@@ -89,13 +90,24 @@ class _LoginScreenState extends State<LoginScreen> {
   // ---------------- UI HELPERS ----------------
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg)));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg)),
+    );
   }
 
   void _showSuccess(String msg) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg)));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg)),
+    );
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    pwdController.dispose();
+    super.dispose();
   }
 
   // ---------------- UI ----------------
@@ -135,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: _forgotPassword,
+                  onPressed: _loading ? null : _forgotPassword,
                   child: const Text(
                     "Forgot Password?",
                     style: TextStyle(color: Color(0xFF4F9792)),
@@ -144,6 +156,40 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
 
               const SizedBox(height: 16),
+
+              // ---------------- EMAIL LOGIN BUTTON ----------------
+SizedBox(
+  width: double.infinity, // 🔥 FULL WIDTH
+  height: 48,
+  child: ElevatedButton(
+    onPressed: _loading ? null : _login,
+    style: ElevatedButton.styleFrom(
+      backgroundColor: const Color(0xFF4F9792),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(28),
+      ),
+    ),
+    child: _loading
+        ? const SizedBox(
+            height: 22,
+            width: 22,
+            child: CircularProgressIndicator(
+              color: Colors.white,
+              strokeWidth: 2,
+            ),
+          )
+        : const Text(
+            "Login",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+  ),
+),
+
+const SizedBox(height: 16),
+
 
               // ---------------- GOOGLE LOGIN ----------------
 
@@ -154,15 +200,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       ? null
                       : () async {
                           try {
-                            await GoogleAuthService
-                                .signInWithGoogle(
-                              isRegister: false, // 🔥 LOGIN MODE
+                            setState(() => _loading = true);
+                            await GoogleAuthService.signInWithGoogle(
+                              isRegister: false,
                             );
-                            // 🚦 AuthGate decides screen
-                          } catch (e) {
+                            // ✅ AuthGate decides next screen
+                          } catch (_) {
                             _showError(
                               "User not registered. Please register first.",
                             );
+                          } finally {
+                            if (mounted) setState(() => _loading = false);
                           }
                         },
                   style: OutlinedButton.styleFrom(
@@ -172,14 +220,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     side: const BorderSide(
                       color: Color(0xFF4F9792),
                     ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                    ),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const SizedBox(width: 4),
                       Image.asset(
                         "assets/images/google.png",
                         height: 24,
@@ -194,7 +238,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(width: 4),
                     ],
                   ),
                 ),
@@ -209,15 +252,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   const Text("Don't have an account? "),
                   GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              const RegisterScreen(),
-                        ),
-                      );
-                    },
+                    onTap: _loading
+                        ? null
+                        : () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const RegisterScreen(),
+                              ),
+                            );
+                          },
                     child: const Text(
                       "Register",
                       style: TextStyle(

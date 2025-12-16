@@ -1,4 +1,6 @@
+import 'package:expense_tracker_app/provider/ExpenseProvider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../controllers/firebase_collection.dart';
 
 final firebaseService = FirebaseService();
@@ -28,27 +30,42 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   }
 
   Future<void> _submitExpense() async {
-    if (!_formKey.currentState!.validate()) return;
+  if (!_formKey.currentState!.validate()) return;
 
-    try {
-      await firebaseService.saveExpense(
-        title: _titleController.text.trim(),
-        amount: double.parse(_amountController.text.trim()),
-        date: DateTime.now().toIso8601String(),
-      );
+  final title = _titleController.text.trim();
+  final amount = double.parse(_amountController.text.trim());
+  final date = DateTime.now().toIso8601String();
 
-      if (!mounted) return;
-      Navigator.pop(context);
+  try {
+    // 1️⃣ Save to Firebase
+    await firebaseService.saveExpense(
+      title: title,
+      amount: amount,
+      date: date,
+    );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Expense added successfully")),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to add expense")),
-      );
+    // 2️⃣ UPDATE PROVIDER (🔥 THIS WAS MISSING)
+    if (mounted) {
+      context.read<ExpenseProvider>().addExpense({
+        'title': title,
+        'amount': amount,
+        'date': date,
+      });
     }
+
+    if (!mounted) return;
+    Navigator.pop(context);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Expense added successfully")),
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Failed to add expense")),
+    );
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -277,11 +294,20 @@ void showAddExpenseSheet(BuildContext context) {
 
                   if (title.isEmpty || amount <= 0) return;
 
-                  await firebaseService.saveExpense(
-                    title: title,
-                    amount: amount,
-                    date: DateTime.now().toIso8601String(),
-                  );
+                  final date = DateTime.now().toIso8601String();
+
+await firebaseService.saveExpense(
+  title: title,
+  amount: amount,
+  date: date,
+);
+
+// 🔥 UPDATE PROVIDER
+context.read<ExpenseProvider>().addExpense({
+  'title': title,
+  'amount': amount,
+  'date': date,
+});
 
                   Navigator.pop(context);
 

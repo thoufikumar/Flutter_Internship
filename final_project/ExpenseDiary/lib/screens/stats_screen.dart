@@ -213,7 +213,14 @@ class _StatsScreenState extends State<StatsScreen> with TickerProviderStateMixin
               ),
             ],
           ),
-          onTap: () => _editItem(item, isBudget, symbol),
+          onTap: () {
+  if (isBudget) {
+    _showBudgetDetailsSheet(item, symbol);
+  } else {
+    _editItem(item, false, symbol);
+  }
+},
+
         ),
       );
     },
@@ -254,4 +261,128 @@ class _StatsScreenState extends State<StatsScreen> with TickerProviderStateMixin
       ),
     );
   }
+  void _showBudgetDetailsSheet(Map<String, dynamic> budget, String symbol) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (_) {
+      final categories =
+          Map<String, dynamic>.from(budget['categories'] ?? {});
+
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 🔹 Handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade400,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // 🔹 Title
+            Text(
+              budget['title'] ?? 'Monthly Budget',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            Text(
+              "Total: $symbol${budget['amount'].toStringAsFixed(2)}",
+              style: const TextStyle(
+                fontSize: 16,
+                color: Color(0xFF4F9792),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            const Text(
+              "Category Breakdown",
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            ...categories.entries.map(
+              (entry) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(entry.key),
+                    Text(
+                      "$symbol${(entry.value as num).toStringAsFixed(2)}",
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _editItem(budget, true, symbol);
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF4F9792),
+                      side: const BorderSide(color: Color(0xFF4F9792)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text("Edit"),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _confirmDeleteItem(budget, true);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text("Delete"),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
 }
