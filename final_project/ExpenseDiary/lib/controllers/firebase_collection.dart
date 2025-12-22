@@ -13,19 +13,31 @@ class FirebaseService {
     required String title,
     required double amount,
     required String date,
+    String source = 'manual',
+
+    // 🧠 Optional enrichment
+    String? category,
+    bool? isOneTime,
   }) async {
     if (_uid == null) return;
+
+    final data = <String, dynamic>{
+      'title': title,
+      'amount': amount,
+      'date': date,
+      'source': source,
+      'createdAt': FieldValue.serverTimestamp(),
+    };
+
+    // ✅ store only if present
+    if (category != null) data['category'] = category;
+    if (isOneTime != null) data['isOneTime'] = isOneTime;
 
     await _firestore
         .collection('users')
         .doc(_uid)
         .collection('expenses')
-        .add({
-      'title': title,
-      'amount': amount,
-      'date': date,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+        .add(data);
   }
 
   Future<List<Map<String, dynamic>>> getExpenses() async {
@@ -105,7 +117,7 @@ class FirebaseService {
         }).toList();
   }
 
-  // ---------------- COMMON UTILS ----------------
+  // ---------------- COMMON ----------------
 
   Future<void> updateAmount({
     required String collection,

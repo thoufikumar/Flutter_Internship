@@ -1,10 +1,10 @@
+import 'package:expense_tracker_app/screens/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../provider/currency_provider.dart';
 import '../provider/ExpenseProvider.dart';
-import 'addExpenses.dart';
 
 String getUserNameFromAuth(User? user) {
   if (user == null) return "User";
@@ -37,24 +37,24 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-@override
-void initState() {
-  super.initState();
+  @override
+  void initState() {
+    super.initState();
 
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    final provider = context.read<ExpenseProvider>();
-    if (!provider.sessionInitialized) {
-      provider.loadAll();
-    }
-  });
-}
-
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = context.read<ExpenseProvider>();
+      if (!provider.sessionInitialized) {
+        provider.loadAll();
+      }
+    });
+  }
 
   Widget _buildAmountInfoWhite(String label, double amount, String symbol) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 14, color: Colors.white70)),
+        Text(label,
+            style: const TextStyle(fontSize: 14, color: Colors.white70)),
         const SizedBox(height: 4),
         Text(
           '$symbol${amount.toStringAsFixed(2)}',
@@ -73,8 +73,8 @@ void initState() {
     final currencyProvider = context.watch<CurrencyProvider>();
     final expenseProvider = context.watch<ExpenseProvider>();
 
-final user = FirebaseAuth.instance.currentUser;
-final displayName = getUserNameFromAuth(user);
+    final user = FirebaseAuth.instance.currentUser;
+    final displayName = getUserNameFromAuth(user);
 
     if (!currencyProvider.isReady || expenseProvider.isLoading) {
       return const Scaffold(
@@ -86,32 +86,40 @@ final displayName = getUserNameFromAuth(user);
 
     return Scaffold(
       backgroundColor: const Color(0xFF4F9792),
-
       body: Column(
         children: [
           const SizedBox(height: 50),
-          
 
-          /// ⭐ Welcome Header
-          Padding(
+/// ⭐ Welcome Header
+Padding(
   padding: const EdgeInsets.symmetric(horizontal: 20),
   child: Row(
     children: [
-      ClipRRect(
-        borderRadius: BorderRadius.circular(50),
-        child: user?.photoURL != null
-            ? Image.network(
-                user!.photoURL!,
-                width: 55,
-                height: 55,
-                fit: BoxFit.cover,
-              )
-            : Image.asset(
-                'assets/images/profile.jpg',
-                width: 55,
-                height: 55,
-                fit: BoxFit.cover,
-              ),
+      GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const ProfileScreen(),
+            ),
+          );
+        },
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(50),
+          child: user?.photoURL != null
+              ? Image.network(
+                  user!.photoURL!,
+                  width: 55,
+                  height: 55,
+                  fit: BoxFit.cover,
+                )
+              : Image.asset(
+                  'assets/images/profile.jpg',
+                  width: 55,
+                  height: 55,
+                  fit: BoxFit.cover,
+                ),
+        ),
       ),
       const SizedBox(width: 14),
       Expanded(
@@ -130,101 +138,106 @@ final displayName = getUserNameFromAuth(user);
 
 const SizedBox(height: 20),
 
-  /// ⭐ Balance Card
-Padding(
-  padding: const EdgeInsets.symmetric(horizontal: 24),
-  child: Container(
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      color: const Color(0xFF3E7C78),
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.2),
-          blurRadius: 12,
-          offset: const Offset(0, 6),
-        ),
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "Your Balance",
-          style: TextStyle(fontSize: 15, color: Colors.white70),
-        ),
-        const SizedBox(height: 8),
+          /// ⭐ Balance Card
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFF3E7C78),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Your Balance",
+                    style: TextStyle(fontSize: 15, color: Colors.white70),
+                  ),
+                  const SizedBox(height: 8),
 
-        /// 💰 BALANCE ROW
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                "$symbol${currencyProvider.convert(expenseProvider.balance).toStringAsFixed(2)}",
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+                  /// 💰 BALANCE ROW
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          "$symbol${currencyProvider.convert(expenseProvider.balance).toStringAsFixed(2)}",
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+
+                      /// 🔁 Currency Switch
+                      GestureDetector(
+                        onTap: () {
+                          showModalBottomSheet(
+                            context: context,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(20)),
+                            ),
+                            builder: (_) {
+                              return ListView(
+                                children: CurrencyProvider
+                                    .currencySymbols.entries
+                                    .map((entry) {
+                                  return ListTile(
+                                    leading: Text(entry.value,
+                                        style: const TextStyle(fontSize: 22)),
+                                    title: Text(entry.key),
+                                    onTap: () {
+                                      currencyProvider
+                                          .setViewCurrency(entry.key);
+                                      Navigator.pop(context);
+                                    },
+                                  );
+                                }).toList(),
+                              );
+                            },
+                          );
+                        },
+                        child:
+                            const Icon(Icons.swap_horiz, color: Colors.white),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  /// 📊 INCOME + EXPENSES
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      /// 🟢 INCOME (editable)
+                      _buildIncomeEditable(
+                        context,
+                        currencyProvider,
+                        expenseProvider,
+                        symbol,
+                      ),
+
+                      /// 🔴 EXPENSES
+                      _buildAmountInfoWhite(
+                        "Expenses",
+                        currencyProvider.convert(expenseProvider.totalExpenses),
+                        symbol,
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-
-            /// 🔁 Currency Switch
-            GestureDetector(
-              onTap: () {
-                showModalBottomSheet(
-                  context: context,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                  ),
-                  builder: (_) {
-                    return ListView(
-                      children: CurrencyProvider.currencySymbols.entries.map((entry) {
-                        return ListTile(
-                          leading: Text(entry.value, style: const TextStyle(fontSize: 22)),
-                          title: Text(entry.key),
-                          onTap: () {
-                            currencyProvider.setViewCurrency(entry.key);
-                            Navigator.pop(context);
-                          },
-                        );
-                      }).toList(),
-                    );
-                  },
-                );
-              },
-              child: const Icon(Icons.swap_horiz, color: Colors.white),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 16),
-
-        /// 📊 INCOME + EXPENSES
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            /// 🟢 INCOME (editable)
-            _buildIncomeEditable(
-              context,
-              currencyProvider,
-              expenseProvider,
-              symbol,
-            ),
-
-            /// 🔴 EXPENSES
-            _buildAmountInfoWhite(
-              "Expenses",
-              currencyProvider.convert(expenseProvider.totalExpenses),
-              symbol,
-            ),
-          ],
-        ),
-      ],
-    ),
-  ),
-),
-
+          ),
 
           /// ⭐ White Panel
           Expanded(
@@ -245,10 +258,8 @@ Padding(
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 14),
-
                   if (expenseProvider.topExpenses.isEmpty)
                     const Text("No expenses added yet."),
-
                   ...expenseProvider.topExpenses.map((expense) {
                     final amount = currencyProvider.convert(expense['amount']);
 
@@ -266,7 +277,8 @@ Padding(
                         ],
                       ),
                       child: ListTile(
-                        leading: const Icon(Icons.trending_down, color: Colors.redAccent),
+                        leading: const Icon(Icons.trending_down,
+                            color: Colors.redAccent),
                         title: Text(expense['title']),
                         subtitle: Text(expense['date']),
                         trailing: Text(
@@ -288,6 +300,7 @@ Padding(
     );
   }
 }
+
 Widget _buildIncomeEditable(
   BuildContext context,
   CurrencyProvider currencyProvider,
@@ -427,8 +440,7 @@ void _showEditIncomeSheet(
                   ),
                 ),
                 onPressed: () async {
-                  final income =
-                      double.tryParse(controller.text.trim()) ?? 0;
+                  final income = double.tryParse(controller.text.trim()) ?? 0;
 
                   if (income <= 0) return;
 

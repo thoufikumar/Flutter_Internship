@@ -28,7 +28,7 @@ class _IntroSplashImageState extends State<IntroSplashImage> {
     // 🚀 Hand over control to AuthGate
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const AuthGate()),
+      MaterialPageRoute(builder: (_) => AuthGate()),
     );
   }
 

@@ -91,7 +91,7 @@ Future<void> _onLogout() async {
   if (!mounted) return;
 
   Navigator.of(context).pushAndRemoveUntil(
-    MaterialPageRoute(builder: (_) => const AuthGate()),
+    MaterialPageRoute(builder: (_) => AuthGate()),
     (_) => false,
   );
 }

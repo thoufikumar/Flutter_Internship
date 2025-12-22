@@ -1,10 +1,10 @@
-import 'package:expense_tracker_app/screens/addExpenses.dart';
 import 'package:flutter/material.dart';
 import 'home.dart';
 import 'stats_screen.dart';
 import 'budget_planner.dart';
-import 'profile_screen.dart';
-import 'addExpenses.dart'; // 👈 import your add expense screen
+import 'addExpenses.dart';
+import 'unresolved_transactions_screen.dart';
+import 'eve_chat_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -17,47 +17,60 @@ class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
 
   final List<Widget> _screens = const [
-    HomeScreen(),
-    StatsScreen(),
-    BudgetPlannerScreen(),
-    ProfileScreen(),
+    HomeScreen(),                    // 0
+    UnresolvedTransactionsScreen(),  // 1
+    SizedBox(),                      // 2 ➕ handled via sheet
+    StatsScreen(),                   // 3
+    BudgetPlannerScreen(),           // 4
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true,
-      body: _screens[_currentIndex],
+  extendBody: true,
+  body: _screens[_currentIndex],
 
-      /// ➕ CENTER FAB (like reference image)
-      floatingActionButton: Container(
-        height: 64,
-        width: 64,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF4F9792).withOpacity(0.35),
-              blurRadius: 18,
-              offset: const Offset(0, 6),
-            ),
-          ],
+ floatingActionButton: Padding(
+  padding: const EdgeInsets.only(
+    right: 8,
+    bottom: 15, // ✅ just ~30px above nav bar
+  ),
+  child: Container(
+    height: 64,
+    width: 64,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      boxShadow: [
+        BoxShadow(
+          color: const Color(0xFF4F9792).withOpacity(0.35),
+          blurRadius: 18,
+          offset: const Offset(0, 6),
         ),
-        child: FloatingActionButton(
-          elevation: 0,
-          backgroundColor: const Color(0xFF4F9792),
-          onPressed: () {
-            showAddExpenseSheet(context);
-          },
-          child: const Icon(Icons.add, size: 30),
-        ),
+      ],
+    ),
+    child: FloatingActionButton(
+      elevation: 0,
+      backgroundColor: const Color(0xFF4F9792),
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const EveChatScreen(),
+          ),
+        );
+      },
+      child: const Icon(
+        Icons.chat_bubble_outline,
+        size: 28,
       ),
+    ),
+  ),
+),
 
-      /// 🔥 THIS IS THE FIX YOU WERE MISSING
-      floatingActionButtonLocation:
-          FloatingActionButtonLocation.centerDocked,
+floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
 
-      /// 🌿 CUSTOM CURVED NAV BAR
+
+      /// 🌿 CUSTOM NAV BAR (NO PROFILE ICON)
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
         child: Container(
@@ -77,13 +90,13 @@ class _MainNavigationState extends State<MainNavigation> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _navItem(Icons.home_rounded, 0),
-              _navItem(Icons.bar_chart_rounded, 1),
+              _navItem(Icons.inbox_rounded, 1),
 
-              /// 👇 space for FAB dip
-              const SizedBox(width: 48),
+              /// ➕ Add Expense
+              _navAction(Icons.add_circle_outline),
 
-              _navItem(Icons.receipt_long_rounded, 2),
-              _navItem(Icons.person_rounded, 3),
+              _navItem(Icons.bar_chart_rounded, 3),
+              _navItem(Icons.receipt_long_rounded, 4),
             ],
           ),
         ),
@@ -91,7 +104,7 @@ class _MainNavigationState extends State<MainNavigation> {
     );
   }
 
-  /// 🔘 Bottom Nav Item
+  /// 🔘 Normal Nav Item
   Widget _navItem(IconData icon, int index) {
     final isActive = _currentIndex == index;
 
@@ -109,8 +122,26 @@ class _MainNavigationState extends State<MainNavigation> {
         child: Icon(
           icon,
           size: 26,
-          color:
-              isActive ? const Color(0xFF4F9792) : Colors.black54,
+          color: isActive
+              ? const Color(0xFF4F9792)
+              : Colors.black54,
+        ),
+      ),
+    );
+  }
+
+  /// ➕ Add Expense Sheet
+  Widget _navAction(IconData icon) {
+    return GestureDetector(
+      onTap: () {
+        showAddExpenseSheet(context);
+      },
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Icon(
+          icon,
+          size: 30,
+          color: const Color(0xFF4F9792),
         ),
       ),
     );
