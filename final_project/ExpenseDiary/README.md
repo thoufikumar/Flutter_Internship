@@ -1,16 +1,18 @@
-# firstpro
+## Project Status
 
-A new Flutter project.
+Walley is currently in a **stable foundation phase**.
 
-## Getting Started
+### Completed
+- Traditional expense tracking & budgeting
+- Unified add-expense pipeline (manual + auto)
+- Behavior-aware data model (category, one-time flags)
+- Deterministic Rules Engine for financial awareness
+- EVE AI architecture (explanation-only, no decision logic)
 
-This project is a starting point for a Flutter application.
+### Paused (Planned Next)
+- LLM integration & prompt refinement
+- Observation-based testing
+- UI/UX micro-interactions & polish
+- Analytics & monthly narratives
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+The current version is intentionally frozen to preserve architectural clarity.
